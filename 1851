@@ -1,0 +1,117 @@
+#include <cstdio>
+#include <cstring>
+#include <algorithm>
+using namespace std;
+
+const int N = 2010, M = 2000010;
+const int INF = 0x7f7f7f7f;
+struct Edge {
+    int v, cap, next;
+    Edge() {}
+    Edge(int a, int b, int c)
+    : v(a), cap(b), next(c) { }
+}e[M];
+int head[N], sz;
+int pre[N], cur[N], gap[N], dis[N];
+void graphinit() {
+    memset(head, -1, sizeof(head));
+    sz = 0;
+}
+void addedge(int u, int v, int f) {
+    e[sz] = Edge(v, f, head[u]);
+    head[u] = sz++;
+    e[sz] = Edge(u, 0, head[v]);
+    head[v] = sz++;
+}
+int maxflow(int s, int t, int n) {
+    memset(dis, 0, sizeof(dis));
+    memset(gap, 0, sizeof(gap));
+    for (int i = 0; i < n; i++) cur[i] = head[i];
+    int u = pre[s] = s, mf = 0, aug = INF;
+    gap[0] = n;
+    while (dis[s] < n) {
+        bool ok = false;
+        for (int &i = cur[u]; i != -1; i= e[i].next) {
+            int v = e[i].v;
+            if (e[i].cap > 0 && dis[u] == dis[v] + 1) {
+                aug = min(aug, e[i].cap);
+                pre[v] = u; u = v;
+                if (u == t) {
+                    mf += aug;
+                    while (u != s) {
+                        u = pre[u];
+                        e[cur[u]].cap -= aug;
+                        e[cur[u]^1].cap += aug;
+                    }
+                    aug = INF;
+                }
+                ok = true;
+                break;
+            }
+        }
+        if (ok) continue;
+        int mdis = n;
+        for (int i = head[u]; i != -1; i = e[i].next) {
+            int v = e[i].v;
+            if (e[i].cap > 0 && mdis > dis[v]) {
+                cur[u] = i;
+                mdis = dis[v];
+            }
+        }
+        if (--gap[dis[u]] == 0) break;
+        gap[dis[u] = mdis + 1]++;
+        u = pre[u];
+    }
+    return mf;
+}
+char a[N], b[N];
+int c[N];
+void dfs(int u) {
+    c[u] = 1;
+    for (int i = head[u]; i != -1; i = e[i].next)
+        if (e[i].cap) {
+            int v = e[i].v;
+            if (!c[v]) dfs(v);
+        }
+}
+int main() {
+    //freopen("in", "r", stdin);
+    while (~scanf("%s%s", a, b)) {
+        graphinit();
+        int ans = 0;
+        int la = strlen(a);
+        int lb = strlen(b);
+        int s = la + lb, t = s + 1;
+        for (int k = 0; k <= la - lb; k++)
+            for (int j = 0; j < lb; j++) {
+                int i = k + j;
+                if (a[i] == '?') {
+                    if (b[j] == '?') {
+                        addedge(i, j + la, 1);
+                        addedge(j + la, i, 1);
+                    } else if (b[j] == '0') addedge(s, i, 1);
+                    else addedge(i, t, 1);
+                } else if (a[i] == '0') {
+                    if (b[j] == '?') addedge(s, j + la, 1);
+                    else if (b[j] == '1') ans++;
+                } else {
+                    if (b[j] == '?') addedge(j + la, t, 1);
+                    else if (b[j] == '0') ans++;
+                }
+            }
+        ans += maxflow(s, t, t + 1);
+        printf("%d\n", ans);
+        memset(c, 0, sizeof(c));
+        dfs(s);
+        for (int i = 0; i < la; i++) if (a[i] == '?') {
+            if (c[i] == 1) a[i] = '0';
+            else a[i] = '1';
+        }
+        for (int i = 0; i < lb; i++) if (b[i] == '?') {
+            if (c[i + la] == 1) b[i] = '0';
+            else b[i] = '1';
+        }
+        printf("%s\n%s\n", a, b);
+    }
+    return 0;
+}
